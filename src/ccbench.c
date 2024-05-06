@@ -364,6 +364,11 @@ main(int argc, char **argv)
       core = ID - test_core_others;
     }
 
+  if (test_cores > 2)
+    if (ID == test_core2) {
+      core = 1;
+    }
+
 #if defined(NIAGARA)
   if (test_cores <= 8 && test_cores > 3)
     {
@@ -375,7 +380,7 @@ main(int argc, char **argv)
     }
 #endif
 
-  set_cpu(core);
+  set_cpu(core * 2);
 
 #if defined(__tile__)
   tmc_cmem_init(0);		/*   initialize shared memory */
@@ -1547,7 +1552,7 @@ swap(volatile cache_line_t* cl, volatile uint64_t reps)
       cln = clrand();
       volatile cache_line_t* cl1 = cl + cln;
       PFDI(0);
-      res = SWAP_U32(cl1->word, ID);
+      res = SWAP_U64((volatile uint64_t *)cl1->word, ID);
       PFDO(0, reps);
     }
   while (cln > 0);
@@ -2025,36 +2030,37 @@ cache_line_open()
   cache_line->word[0] = 0;
 
 #else	 /* !__tile__ ****************************************************************************************/
-  char keyF[100];
-  sprintf(keyF, CACHE_LINE_MEM_FILE);
+//   char keyF[100];
+//   sprintf(keyF, CACHE_LINE_MEM_FILE);
 
-  int ssmpfd = shm_open(keyF, O_CREAT | O_EXCL | O_RDWR, S_IRWXU | S_IRWXG);
-  if (ssmpfd < 0) 
-    {
-      if (errno != EEXIST) 
-	{
-	  perror("In shm_open");
-	  exit(1);
-	}
+//   int ssmpfd = shm_open(keyF, O_CREAT | O_EXCL | O_RDWR, S_IRWXU | S_IRWXG);
+//   if (ssmpfd < 0) 
+//     {
+//       if (errno != EEXIST) 
+// 	{
+// 	  perror("In shm_open");
+// 	  exit(1);
+// 	}
 
 
-      ssmpfd = shm_open(keyF, O_CREAT | O_RDWR, S_IRWXU | S_IRWXG);
-      if (ssmpfd < 0) 
-	{
-	  perror("In shm_open");
-	  exit(1);
-	}
-    }
-  else {
-    //    P("%s newly openned", keyF);
-    if (ftruncate(ssmpfd, size) < 0) {
-      perror("ftruncate failed\n");
-      exit(1);
-    }
-  }
+//       ssmpfd = shm_open(keyF, O_CREAT | O_RDWR, S_IRWXU | S_IRWXG);
+//       if (ssmpfd < 0) 
+// 	{
+// 	  perror("In shm_open");
+// 	  exit(1);
+// 	}
+//     }
+//   else {
+//     //    P("%s newly openned", keyF);
+//     if (ftruncate(ssmpfd, size) < 0) {
+//       perror("ftruncate failed\n");
+//       exit(1);
+//     }
+//   }
 
   volatile cache_line_t* cache_line = 
-    (volatile cache_line_t *) mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, ssmpfd, 0);
+    // (volatile cache_line_t *) mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, ssmpfd, 0);
+    (volatile cache_line_t *) mmap(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED | MAP_ANONYMOUS | MAP_HUGETLB, -1, 0);
   if (cache_line == NULL)
     {
       perror("cache_line = NULL\n");
@@ -2126,12 +2132,12 @@ void
 cache_line_close(const uint32_t id, const char* name)
 {
 #if !defined(__tile__)
-  if (id == 0)
-    {
-      char keyF[100];
-      sprintf(keyF, CACHE_LINE_MEM_FILE);
-      shm_unlink(keyF);
-    }
+//   if (id == 0)
+//     {
+//       char keyF[100];
+//       sprintf(keyF, CACHE_LINE_MEM_FILE);
+//       shm_unlink(keyF);
+//     }
 #else
   tmc_cmem_close();
 #endif

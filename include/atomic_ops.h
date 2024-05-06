@@ -240,7 +240,7 @@ uint8_t oldval;
 #  define SWAP_U8(a,b) swap_uint8(a,b)
 #  define SWAP_U16(a,b) swap_uint16(a,b)
 #  define SWAP_U32(a,b) swap_uint32(a,b)
-#  define SWAP_U64(a,b) swap_uint64(a,b)
+#  define SWAP_U64(a,b) __sync_lock_test_and_set(a,b)
 //Fetch-and-increment
 #  define FAI_U8(a) __sync_fetch_and_add(a,1)
 #  define FAI_U16(a) __sync_fetch_and_add(a,1)
